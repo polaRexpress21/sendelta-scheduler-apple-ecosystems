@@ -1,0 +1,52 @@
+name: 打包安装包
+
+on:
+  push:
+    branches: [main]
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 准备 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 语法检查
+        run: |
+          python -m compileall -q app.py main.py auth.py config.py pipeline.py scraper.py calendar_sync.py
+          echo "✓ Python 语法检查通过"
+
+      - name: 打包 zip
+        run: |
+          chmod +x install.sh install.command start.command make_app.sh pack.sh \
+                   diagnose_calendars.sh check_calendar.sh \
+                   双击安装.command 双击启动.command 创建快捷方式.command 停止服务.command
+          zip -rq -X sendelta-scheduler-mac.zip . \
+            -x '.git/*' '.github/*' '*.DS_Store' '*__pycache__*' '*.pyc' \
+               '*/.venv/*' '*/课表同步.app/*' 'data/*' 'dist/*' '*.zip'
+          echo "✓ 已打包"
+          unzip -l sendelta-scheduler-mac.zip | tail -3
+
+      - name: 上传构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: sendelta-scheduler-mac
+          path: sendelta-scheduler-mac.zip
+          if-no-files-found: error
+
+      - name: 附加到 Release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: sendelta-scheduler-mac.zip

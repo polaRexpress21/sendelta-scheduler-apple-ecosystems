@@ -1,10 +1,20 @@
 # 课表同步到 Apple Watch · 使用教程
 
+![打包安装包](https://github.com/polaRexpress21/sendelta-scheduler-apple-ecosystems/actions/workflows/build-zip.yml/badge.svg)
+![平台](https://img.shields.io/badge/platform-macOS-blue)
+![许可](https://img.shields.io/badge/license-MIT-green)
+
 把学校学生端（Delta Student）上的每周课表自动抓取，写入 **iCloud 日历**（带「上课前 N 分钟」提醒），
 从而在 iPhone 与 Apple Watch 上收到提醒。**周中手机不在书包里也没关系**——周末同步一次，手表整周离线提醒。
 
 **仓库**：https://github.com/polaRexpress21/sendelta-scheduler-apple-ecosystems
 **不想看长教程**：直接看 [《安装说明-小白版》](安装说明-小白版.md)，解压后双击两个文件就能用。
+
+**怎么拿到安装文件**（两种方式）
+
+1. **Releases**：仓库右侧 [Releases](../../releases) → 下载 `sendelta-scheduler-mac.zip`（最稳）
+2. **Actions 产物**：点 [Actions](../../actions) → 最新一次 `打包安装包` → 底部 Artifacts 下载 `sendelta-scheduler-mac`
+   > 每次推送代码，GitHub 都会自动跑一次语法检查并重新打包，不用手动传文件。
 
 **能做什么**
 
