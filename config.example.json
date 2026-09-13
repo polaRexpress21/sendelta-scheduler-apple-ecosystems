@@ -1,0 +1,19 @@
+{
+  "school_base_url": "https://sendeltastudent.schoolis.cn/",
+  "schedule_url": "",
+  "calendar_name": "课表",
+  "reminder_lead_minutes": 5,
+  "timezone": "Asia/Shanghai",
+  "week_start_mode": "next_monday",
+  "week_start_date": "",
+  "school_days_per_week": 6,
+  "headless": true,
+  "selectors": {
+    "login": { "username": "", "password": "", "submit": "" },
+    "schedule": {
+      "container": "",
+      "date_header": "",
+      "cols": { "subject": "", "time": "", "location": "", "date": "" }
+    }
+  }
+}

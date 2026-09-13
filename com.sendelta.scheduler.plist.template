@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 定时任务模板：__PROJECT_DIR__ 会被 install.sh 替换为本机绝对路径。
+     手动安装：
+       cp com.sendelta.scheduler.plist ~/Library/LaunchAgents/
+       launchctl load ~/Library/LaunchAgents/com.sendelta.scheduler.plist -->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.sendelta.scheduler</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>__PROJECT_DIR__/.venv/bin/python</string>
+        <string>__PROJECT_DIR__/main.py</string>
+        <string>--run</string>
+    </array>
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Weekday</key>
+        <integer>0</integer>
+        <key>Hour</key>
+        <integer>20</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+    <key>WorkingDirectory</key>
+    <string>__PROJECT_DIR__</string>
+    <key>StandardOutPath</key>
+    <string>__PROJECT_DIR__/data/launchd.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>__PROJECT_DIR__/data/launchd.err.log</string>
+    <key>RunAtLoad</key>
+    <false/>
+</dict>
+</plist>
