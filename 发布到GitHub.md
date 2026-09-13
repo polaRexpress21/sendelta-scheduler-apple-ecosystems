@@ -3,7 +3,7 @@
 仓库已经在本地准备好了，目录在：
 
 ```
-/Users/xionghaoran/WorkBuddy/2026-09-12-21-16-32/sendelta-scheduler
+/Users/xionghaoran/Documents/sendelta-scheduler
 ```
 
 已经做了两次提交，252K，包含 25 个源文件。
@@ -48,7 +48,7 @@
 ### 第 3 步：推送（在「终端」App 里粘贴）
 
 ```bash
-cd /Users/xionghaoran/WorkBuddy/2026-09-12-21-16-32/sendelta-scheduler
+cd /Users/xionghaoran/Documents/sendelta-scheduler
 git remote add origin https://github.com/<你的GitHub用户名>/sendelta-scheduler.git
 git branch -M main
 git push -u origin main
