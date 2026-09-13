@@ -1,7 +1,21 @@
 # 课表同步到 Apple Watch · 使用教程
 
-把 `https://sendeltastudent.schoolis.cn/` 上的每周课表，抓取后写入 **iCloud 日历**（带「上课前 N 分钟」提醒），
+把学校学生端（Delta Student）上的每周课表自动抓取，写入 **iCloud 日历**（带「上课前 N 分钟」提醒），
 从而在 iPhone 与 Apple Watch 上收到提醒。**周中手机不在书包里也没关系**——周末同步一次，手表整周离线提醒。
+
+**仓库**：https://github.com/polaRexpress21/sendelta-scheduler-apple-ecosystems
+**不想看长教程**：直接看 [《安装说明-小白版》](安装说明-小白版.md)，解压后双击两个文件就能用。
+
+**能做什么**
+
+| 功能 | 说明 |
+|------|------|
+| 自动登录抓取 | Playwright 无头浏览器登录学生端，解析 FullCalendar 周视图课表 |
+| 写入 iCloud 日历 | AppleScript 写入「日历」App，自动带上课前提醒 |
+| 每周自动同步 | launchd 定时任务，每周日 20:00 自动跑一次 |
+| 网页控制台 | 360° 圆环选提醒分钟数、一键同步、清理已上完的过期课表 |
+| Mac App 快捷方式 | 生成 `课表同步.app`，可拖到 Dock 一键打开 |
+| 每次同步结果 | 页面原地弹窗提示，不跳转；同时更新「上次更新时间」 |
 
 > 运行环境：**仅 macOS**（依赖钥匙串、日历 App 的 AppleScript、launchd 定时任务）。Windows / Linux / iPhone 均不能运行本程序。
 
@@ -242,4 +256,24 @@ security delete-generic-password -s "sendelta-scheduler" -a "password"
 
 **安全**：账号密码只存本机 macOS 钥匙串（Keychain），不上传任何第三方；
 网络请求只发往 `schoolis.cn` 与 Apple iCloud。
-`data/` 里是本机运行数据，不包含密码。
+`data/` 里是本机运行数据，不包含密码，也不会被提交到仓库（见 `.gitignore`）。
+
+---
+
+## 10. 开源与许可
+
+- 许可证：**MIT**，见 [LICENSE](LICENSE) — 可自由使用、修改、分发，欢迎提 Issue / PR。
+- 免责声明：本项目是**个人学习用途**的自动化小工具，与学校或任何官方平台**无关**；
+  请遵守学校相关规定，勿用于超出个人学习范围的用途。
+- 隐私：仓库中**不含**任何账号密码与个人课表数据（已在 `.gitignore` 中排除 `data/`、`config.json`）。
+  如果你 fork 后要提交，请确认不要把 `data/`、`config.json`、`credentials.enc` 加进去。
+
+### 想二次开发？
+
+```bash
+git clone https://github.com/polaRexpress21/sendelta-scheduler-apple-ecosystems.git
+cd sendelta-scheduler-apple-ecosystems
+bash install.sh
+```
+
+改动后提交：`git add -A && git commit -m "说明" && git push`
