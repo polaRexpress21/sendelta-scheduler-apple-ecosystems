@@ -59,8 +59,9 @@ def build_applescript(events, calendar_name, lead_minutes):
         L.append(f'    set hours of endDate to {ev["end_h"]}')
         L.append(f'    set minutes of endDate to {ev["end_m"]}')
         L.append('    set seconds of endDate to 0')
-        L.append('    set newEv to make new event with properties {summary:"%s", location:"%s", start date:startDate, end date:endDate}'
-                 % (_esc(ev["subject"]), _esc(ev["location"])))
+        L.append('    set newEv to make new event with properties {summary:"%s", start date:startDate, end date:endDate%s}'
+                 % (_esc(ev.get("title") or ev.get("subject") or "（未命名）"),
+                    (', description:"%s"' % _esc(ev["note"])) if ev.get("note") else ""))
         L.append('    tell newEv')
         L.append(f'      make new display alarm at end with properties {{trigger interval:-{int(lead_minutes)}}}')
         L.append('    end tell')

@@ -40,9 +40,11 @@ else
 fi
 
 # 3) 依赖
-echo "→ [2/4] 安装 Flask / Playwright / keyring 等组件"
+echo "→ [2/4] 安装 Flask / Playwright / keyring / pywebview 等组件"
 .venv/bin/python -m pip install --upgrade pip -q
 .venv/bin/python -m pip install -r requirements.txt
+# 原生窗口所需的 macOS 桥接库（pywebview 的 Cocoa/WebKit 后端）
+.venv/bin/python -m pip install "pywebview[mac]" >/dev/null 2>&1 || true
 
 # 4) Playwright Chromium（约 150MB）
 echo "→ [3/4] 下载无头浏览器 Chromium（约 150MB，较慢，请耐心）"
@@ -68,7 +70,7 @@ echo "============================================"
 echo " 安装完成！"
 echo "============================================"
 echo "接下来只需两步："
-echo "  1) 双击文件夹里的「双击启动.command」打开网页"
+echo "  1) 双击文件夹里的「双击启动.command」打开原生窗口（不再开浏览器）"
 echo "  2) 填学校账号密码 → 点「同步」"
 echo
 echo "⚠️ 第一次务必再做一次（只需一次）："
@@ -77,4 +79,7 @@ echo "   回车后粘贴："
 echo "     .venv/bin/python main.py --run"
 echo "   弹出“想要访问日历”时点「允许」，否则到时候自动同步会没权限。"
 echo
-read -r -p "按回车键关闭本窗口…" _
+# 一键生成 App 模式下（SENDELTA_BUILD=1）不打断、不等待回车
+if [ -z "$SENDELTA_BUILD" ]; then
+  read -r -p "按回车键关闭本窗口…" _
+fi

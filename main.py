@@ -51,6 +51,62 @@ def open_browser(url):
                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
+def _run_windowed(preferred_port):
+    """原生窗口模式：在后台线程跑 Flask，再用系统 WebKit 弹出一个真正的 App 窗口，
+    而不是打开浏览器。关闭窗口即退出（Flask 随守护线程结束）。"""
+    import threading
+    try:
+        import webview
+    except Exception as e:
+        print("未能加载原生窗口组件 pywebview：", e)
+        print("请先安装：.venv/bin/python -m pip install pywebview")
+        return 1
+    from app import app
+    load_config()
+    host = "127.0.0.1"
+    port, shifted = pick_port(preferred_port, host)
+    port_file = Path(DATA_DIR) / "web.port"
+    try:
+        port_file.write_text(str(port), encoding="utf-8")
+    except Exception:
+        pass
+
+    def _serve():
+        app.run(host=host, port=port, debug=False, threaded=True)
+
+    threading.Thread(target=_serve, daemon=True).start()
+
+    # 等服务真正就绪再弹窗（比固定 sleep 稳）
+    import socket, time
+    ready = False
+    deadline = time.time() + 20.0
+    while time.time() < deadline:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(0.3)
+        try:
+            if s.connect_ex((host, port)) == 0:
+                ready = True
+                break
+        except OSError:
+            pass
+        finally:
+            s.close()
+        time.sleep(0.15)
+
+    print(f"课表同步 · 原生窗口已启动：http://127.0.0.1:{port}")
+    if shifted:
+        print(f"（{preferred_port} 被占用，已改用 {port}）")
+    try:
+        webview.create_window("课表同步", f"http://127.0.0.1:{port}", width=920, height=960)
+        webview.start()
+    finally:
+        try:
+            port_file.unlink(missing_ok=True)
+        except Exception:
+            pass
+    return 0
+
+
 def wait_and_open(url, host, port, timeout=20.0):
     """后台线程：等服务器真正能连上了再开浏览器，比固定 sleep 更快也更稳。"""
     deadline = time.time() + timeout
@@ -81,6 +137,7 @@ def main():
     ap.add_argument("--run", action="store_true", help="抓取并同步到日历")
     ap.add_argument("--push", action="store_true", help="仅把已抓取的 schedule.json 推送到日历（不重新登录）")
     ap.add_argument("--probe", action="store_true", help="探测模式：保存页面 HTML/截图")
+    ap.add_argument("--windowed", action="store_true", help="用原生窗口打开（不再调用浏览器）")
     ap.add_argument("--port", type=int, default=DEFAULT_PORT)
     args = ap.parse_args()
 
@@ -97,6 +154,10 @@ def main():
         res = run_pipeline(probe=True)
         print(res)
         return 0
+
+    # 原生窗口模式：Flask 在后台线程跑，界面用系统原生的 WebKit 窗口（不开浏览器）
+    if args.windowed:
+        return _run_windowed(args.port)
 
     # 默认启动网页
     import os

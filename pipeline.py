@@ -14,8 +14,19 @@ from scraper import (
     save_probe, save_schedule_json,
 )
 from calendar_sync import push_to_calendar
+from reminders_sync import push_to_reminders
+from notes import combined_note
 
 WEEKDAY_CN = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"]
+
+
+def _fmt_title(subject, location):
+    """手表小屏友好的简短标题：科目优先，地点次之。例：数学 · A201"""
+    s = (subject or "").strip()
+    l = (location or "").strip()
+    if s and l:
+        return f"{s} · {l}"
+    return s or l or "（未命名）"
 
 LAST_SYNC_PATH = DATA_DIR / "last_sync.json"
 
@@ -130,8 +141,33 @@ def _build_events(sessions, cfg, week_start):
             "end_h": eh, "end_m": em,
             "subject": s.get("subject", "（未命名）"),
             "location": s.get("location", ""),
+            "title": _fmt_title(s.get("subject", "（未命名）"), s.get("location", "")),
         })
+    for ev in events:
+        ev["note"] = combined_note(ev)
     return events, skipped
+
+
+def _push_all(events, cfg):
+    """按 sync_target 把课表推送到「日历」/「提醒事项」，返回聚合结果。"""
+    target = (cfg.get("sync_target", "both") or "both").lower()
+    results = []
+    if target in ("calendar", "both"):
+        results.append(("日历", push_to_calendar(
+            events, cfg.get("calendar_name", "课表"), cfg["reminder_lead_minutes"])))
+    if target in ("reminders", "both"):
+        results.append(("提醒事项", push_to_reminders(
+            events, cfg.get("reminders_list", "课表"), cfg["reminder_lead_minutes"])))
+    pushed = sum((r.get("pushed", 0) or 0) for _, r in results)
+    notes, errors = [], []
+    for name, r in results:
+        if r.get("error"):
+            errors.append(f"【{name}】{r['error']}")
+        elif r.get("note"):
+            notes.append(f"【{name}】{r['note']}")
+    msg = "\n".join(notes + errors)
+    return {"pushed": pushed, "notes": notes, "errors": errors,
+            "msg": msg, "error": "\n".join(errors) if errors else None}
 
 
 def run_pipeline(probe: bool = False):
@@ -176,13 +212,13 @@ def run_pipeline(probe: bool = False):
     week_start = _resolve_week_start(cfg)
     events, skipped = _build_events(out["sessions"], cfg, week_start)
     save_schedule_json(events, week_start)
-    result = push_to_calendar(events, cfg["calendar_name"], cfg["reminder_lead_minutes"])
-    if result.get("pushed"):
-        save_last_sync(result["pushed"], result.get("note", ""))
+    result = _push_all(events, cfg)
+    if result["pushed"]:
+        save_last_sync(result["pushed"], result.get("msg", ""))
     return {"status": "ok", "week_start": week_start.isoformat(),
-            "pushed": result.get("pushed"), "skipped": len(skipped),
+            "pushed": result["pushed"], "skipped": len(skipped),
             "schedule_json": str(DATA_DIR / "schedule.json"),
-            "msg": result.get("error") or result.get("note", ""),
+            "msg": result.get("msg", ""),
             "error": result.get("error")}
 
 
@@ -196,12 +232,15 @@ def push_existing_schedule():
                 "msg": "尚未抓取课表，请先运行 --run 或在网页点“运行同步”。"}
     data = json.loads(p.read_text(encoding="utf-8"))
     events = data.get("classes") or data.get("events") or []
+    # 重新套用最新备注（备注可能在本周抓取之后改过）
+    for ev in events:
+        ev.setdefault("note", combined_note(ev))
     if not events:
         return {"status": "empty", "msg": "schedule.json 中没有课表事件。"}
-    result = push_to_calendar(events, cfg["calendar_name"], cfg["reminder_lead_minutes"])
-    if result.get("pushed"):
-        save_last_sync(result["pushed"], result.get("note", ""))
-    return {"status": "ok" if result.get("pushed") else "error",
-            "pushed": result.get("pushed", 0),
-            "msg": result.get("error") or result.get("note", ""),
+    result = _push_all(events, cfg)
+    if result["pushed"]:
+        save_last_sync(result["pushed"], result.get("msg", ""))
+    return {"status": "ok" if result["pushed"] else "error",
+            "pushed": result["pushed"],
+            "msg": result.get("msg", ""),
             "error": result.get("error")}

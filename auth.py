@@ -1,15 +1,22 @@
-"""账号密码存储：优先使用 macOS 钥匙串（keyring），不可用时回退到本地加密文件。"""
-import keyring
+"""账号密码存储：保存到本机应用数据目录，不再使用 macOS 钥匙串（keyring）。
+
+原因：未签名 / 自签名的 App 每次读写「登录钥匙串」时，macOS 会弹出
+「输入密码以允许 'Python' 访问钥匙串」的系统授权框。改为把账号密码保存在
+应用自己的数据目录（打包后即 ~/Library/Application Support/课表同步）下，
+避免触发系统密码弹窗，用户只需在软件内输入一次账号密码即可。
+"""
 import base64
 import os
 from pathlib import Path
 
-SERVICE = "sendelta-scheduler"
-_FALLBACK = Path(__file__).resolve().parent / "credentials.enc"
+from config import RUNTIME_DIR
+
+# 凭证文件放在运行时数据目录（不写进 .app 包体内部）
+_CRED_FILE = RUNTIME_DIR / "credentials.enc"
 
 
 def _obfuscate(data: str) -> str:
-    # 仅做轻量混淆，避免明文落在磁盘；真正安全仍建议用钥匙串
+    # 轻量混淆，避免明文直接落在磁盘；文件权限已收紧为仅本人可读（0600）
     return base64.b64encode(data.encode("utf-8")).decode("utf-8")
 
 
@@ -18,30 +25,16 @@ def _deobfuscate(token: str) -> str:
 
 
 def save_credentials(username: str, password: str):
-    try:
-        keyring.set_password(SERVICE, "username", username)
-        keyring.set_password(SERVICE, "password", password)
-        # 同步清掉可能存在的回退文件
-        if _FALLBACK.exists():
-            _FALLBACK.unlink()
-    except Exception:
-        # 钥匙串不可用（如某些服务器环境）：写本地混淆文件，权限收窄
-        payload = _obfuscate(f"{username}\n{password}")
-        with open(_FALLBACK, "w", encoding="utf-8") as f:
-            f.write(payload)
-        os.chmod(_FALLBACK, 0o600)
+    payload = _obfuscate(f"{username}\n{password}")
+    RUNTIME_DIR.mkdir(parents=True, exist_ok=True)
+    with open(_CRED_FILE, "w", encoding="utf-8") as f:
+        f.write(payload)
+    os.chmod(_CRED_FILE, 0o600)
 
 
 def get_credentials():
-    try:
-        user = keyring.get_password(SERVICE, "username")
-        pw = keyring.get_password(SERVICE, "password")
-        if user is not None and pw is not None:
-            return user, pw
-    except Exception:
-        pass
-    if _FALLBACK.exists():
-        with open(_FALLBACK, "r", encoding="utf-8") as f:
+    if _CRED_FILE.exists():
+        with open(_CRED_FILE, "r", encoding="utf-8") as f:
             raw = _deobfuscate(f.read().strip())
         lines = raw.split("\n", 1)
         return lines[0], lines[1] if len(lines) > 1 else ""

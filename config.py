@@ -1,18 +1,41 @@
-"""配置读写：config.json 保存在项目根目录。"""
+"""配置读写：config.json 保存在项目根目录。
+
+打包成「自包含 .app」后，所有可变数据（配置、课表、备注、日志、账号回退文件）
+都不应写进 .app 包体内部——否则会破坏包的签名/只读性。
+判断规则：当 __file__ 位于 *.app/Contents/... 内，或显式设了 SENDELTA_DATA_DIR 时，
+把 RUNTIME_DIR 改到「~/Library/Application Support/课表同步」，保持包体只读。
+"""
 import json
+import os
 from pathlib import Path
 
-BASE_DIR = Path(__file__).resolve().parent
-CONFIG_PATH = BASE_DIR / "config.json"
-DATA_DIR = BASE_DIR / "data"
-if not DATA_DIR.exists():
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
+BASE_DIR = Path(__file__).resolve().parent   # 源码所在目录（始终在程序目录内）
+
+
+def _is_bundled() -> bool:
+    """是否运行在打包好的 .app 里（路径含 *.app）。"""
+    return any(part.endswith(".app") for part in BASE_DIR.parts)
+
+
+# 运行时可变数据目录：打包后放到「应用程序支持」，开发模式仍用项目根目录
+if _is_bundled() or os.environ.get("SENDELTA_DATA_DIR"):
+    RUNTIME_DIR = Path(os.environ.get("SENDELTA_DATA_DIR")
+                       or (Path.home() / "Library" / "Application Support" / "课表同步"))
+else:
+    RUNTIME_DIR = BASE_DIR
+
+RUNTIME_DIR.mkdir(parents=True, exist_ok=True)
+DATA_DIR = RUNTIME_DIR                      # 课表/备注/日志等
+CONFIG_PATH = RUNTIME_DIR / "config.json"  # 用户配置
 
 DEFAULT_CONFIG = {
     "school_base_url": "https://sendeltastudent.schoolis.cn/",
     # 课表页 URL：留空则登录后自动在页面中寻找“课表/课程表”入口并点击
     "schedule_url": "",
-    "calendar_name": "课表",
+    "calendar_name": "课表",              # 写入「日历」的专用日历名
+    "reminders_list": "课表",             # 写入「提醒事项」的专用列表名
+    # 同步目标：calendar=只写日历；reminders=只写提醒事项；both=两者都写
+    "sync_target": "both",
     "reminder_lead_minutes": 5,           # 上课前多少分钟提醒（0–10）
     "timezone": "Asia/Shanghai",
     "week_start_mode": "next_monday",     # auto(从页面解析日期) | next_monday | explicit

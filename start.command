@@ -6,5 +6,5 @@ if [ ! -x ".venv/bin/python" ]; then
   read -r -p "按回车键关闭本窗口…" _
   exit 1
 fi
-# 端口由 main.py 自动挑选（5000 被“隔空播放接收器”占用时会自动换一个）
-exec .venv/bin/python main.py
+# 原生窗口模式：弹出系统 WebKit 窗口，不再打开浏览器
+exec .venv/bin/python main.py --windowed
