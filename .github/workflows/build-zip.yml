@@ -50,3 +50,37 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: sendelta-scheduler-mac.zip
+
+  # 在 macOS 上构建自包含 DMG（.app 内捆绑 venv + Chromium，最终用户拖拽即可安装）
+  dmg:
+    runs-on: macos-latest   # 默认 macOS 跑分器（Apple Silicon / arm64）
+    permissions:
+      contents: write
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 准备 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 打包 DMG
+        run: |
+          chmod +x build_app.sh install.sh
+          bash build_app.sh
+
+      - name: 上传 DMG 产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: sendelta-scheduler-dmg
+          path: 课表同步.dmg
+          if-no-files-found: error
+          compression-level: 0
+
+      - name: 附加 DMG 到 Release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: 课表同步.dmg
